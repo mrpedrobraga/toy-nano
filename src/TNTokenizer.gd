@@ -73,6 +73,11 @@ static func tokenize(raw: String) :
 	var current_indent := 0
 	var indent_stack := []
 	
+	var ops = OPERATORS.values()
+	var op_regex = str(ops.pop_front())
+	for op in ops:
+		op_regex += "|" + op
+	
 	# Read the entire code
 	while i < size:
 		# The chunk of code is the entire code from
@@ -139,11 +144,11 @@ static func tokenize(raw: String) :
 			continue
 		
 		# STRING LITERAL
-		term = qmatch(chunk, "\\A(\"(.*?)\"|'(.*?)')")
+		term = qmatch(chunk, "(?m)\\A(\"((?:.|\t|\n)*?)\"|'((?:.|\t|\n)*?)')")
 		if term:
 			tokens.push_back(Token.create(
 				&"LITERAL_STRING",
-				term[2] + term[3]
+				parse_line_string(term[2] + term[3])
 				))
 			# Make sure to skip that amount of characters.
 			i += len(term[1])
@@ -167,24 +172,6 @@ static func tokenize(raw: String) :
 				))
 			# Make sure to skip that amount of characters.
 			i += 1
-			continue
-		
-		# PARENTHESIS
-		term = qmatch(chunk, "\\A\\(")
-		if term:
-			tokens.push_back(Token.create(
-				&"PARENTHESIS_OPEN",
-				))
-			# Make sure to skip that amount of characters.
-			i += len(term[0])
-			continue
-		term = qmatch(chunk, "\\A\\)")
-		if term:
-			tokens.push_back(Token.create(
-				&"PARENTHESIS_CLOSE",
-				))
-			# Make sure to skip that amount of characters.
-			i += len(term[0])
 			continue
 		
 		# LIST
@@ -224,10 +211,6 @@ static func tokenize(raw: String) :
 			continue
 		
 		# OPERATORS
-		var ops = OPERATORS.values()
-		var op_regex = str(ops.pop_front())
-		for op in ops:
-			op_regex += "|" + op
 		
 		term = qmatch(chunk, "\\A(" + op_regex + ")")
 		if term:
@@ -239,17 +222,28 @@ static func tokenize(raw: String) :
 			i += len(term[0])
 			continue
 		
-		## Identation Magic (???) ##
-		
-		# ESCAPE_NEWLINE
-		term = qmatch(chunk, "\\A(\n(\\t*))")
+		# PARENTHESIS
+		term = qmatch(chunk, "\\A\\(")
 		if term:
+			tokens.push_back(Token.create(
+				&"PARENTHESIS_OPEN",
+				))
 			# Make sure to skip that amount of characters.
-			i += len(term[1])
+			i += len(term[0])
+			continue
+		term = qmatch(chunk, "\\A\\)")
+		if term:
+			tokens.push_back(Token.create(
+				&"PARENTHESIS_CLOSE",
+				))
+			# Make sure to skip that amount of characters.
+			i += len(term[0])
 			continue
 		
+		## Identation Magic (???) ##
+		
 		# Match newlines, and indentation open/close.
-		term = qmatch(chunk, "(?m)\\A\n(\\t*)")
+		term = qmatch(chunk, "(?m)\\A\n(\\t+)")
 		if term:
 			var i_size = len(term[1])
 			
@@ -261,8 +255,11 @@ static func tokenize(raw: String) :
 				tokens.push_back(Token.create(
 					&"INDENT_OPEN"
 					))
+		term = qmatch(chunk, "(?m)\\A\n(\\t*)")
+		if term:
+			var i_size = len(term[1])
 			# If a lower level...
-			elif i_size < current_indent:
+			if i_size < current_indent:
 				# While the current indent level is bigger
 				# than the target indent size...
 				while i_size < current_indent:
@@ -287,6 +284,13 @@ static func tokenize(raw: String) :
 				&"NEWLINE"
 				))
 			i += len(term[0])
+			continue
+		
+		# ESCAPE_NEWLINE
+		term = qmatch(chunk, "\\A(\n(\\t*))")
+		if term:
+			# Make sure to skip that amount of characters.
+			i += len(term[1])
 			continue
 		
 		# WHITESPACE
@@ -321,3 +325,15 @@ static func qmatch(sub: String, regex: String):
 	var m = r.search(sub)
 	if not m: return m
 	return m.strings
+
+static func parse_line_string(str:String):
+	var r = RegEx.new()
+	r.compile('\n\t*')
+	str = r.sub(str, ' ', true)
+	
+	r.compile('\\\\n')
+	str = r.sub(str, '\n', true)
+	r.compile('\\\\t')
+	str = r.sub(str, '\t', true)
+	
+	return str
