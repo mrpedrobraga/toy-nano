@@ -54,3 +54,7 @@ config/name="Toy Nano Gd"
 run/main_scene="res://Main.tscn"
 config/features=PackedStringArray("4.0", "Vulkan Clustered")
 config/icon="res://icon.svg"
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
