@@ -5,62 +5,52 @@ class_name TNRuntime
 ##
 ##A runtime that executes parsed Nano code.
 
-## A type, which has a name
-class TN_Type:
-	var _name : StringName
-	
-	func _init(__name : StringName = &"UNDEFINED"):
-		_name = __name
-	
-	func _to_string():
-		return str(_name)
+var context : TNContext
+var constants := {}
 
-## A value, which can have a type and a size
-## This is an abstract class.
-class TN_Value:
-	## The type of the data
-	var _type : TN_Type
-	## The size of the data in bytes
-	var _size : int = 4
-	
-	## The data this value holds, as abstracted
-	## thru two virtual functions.
-	##
-	## In the serious implementation,
-	## this can be a buffer -- but here
-	## letting it be virtual allows each implementation
-	## of TN_Value to have its own typed variable
-	## for its data.
-	func _set_data(__data):
-		pass
-	
-	func _get_data():
-		pass
-	
-	## To-String function, good for debugging.
-	func _to_string():
-		return "<val %s = %s>" % [_type, str(_get_data())]
+# A handy reference to the 'type' [TN_type].
+var _tn_type : TN_type
 
-## A nano boolean value
-class TN_bool extends TN_Value:
-	## The int this value holds
-	var _data : bool = false
-	
-	func _init(__data:bool=false):
-		_data = __data
-		_type = TN_Type.new(&"BUILTIN_BOOLEAN")
-	
-	func _set_data(__data): if __data is bool : _data = __data
-	func _get_data(): return _data
+# Helper macro that creates a new instance of TN_type quickly,
+# assiging _tn_type as the type of the newly created value.
+func _new_type():
+	var t = TN_type.new()
+	t._type = _tn_type
+	return t
 
-## A nano integer value
-class TN_int extends TN_Value:
-	## The int this value holds
-	var _data : int = 0
+func _init():
+	# initialize the context.
+	# it has a reference to the global constants
+	context = TNContext.new(constants, null)
 	
-	func _init(__data:int=0):
-		_data = __data
-		_type = TN_Type.new(&"BUILTIN_INTEGER")
+	# Create a new [TN_type] instance that will be the
+	# type of nano values that store a type.
+	_tn_type = TN_type.new()
+	_tn_type._type = _tn_type
 	
-	func _set_data(__data): if __data is int : _data = __data
-	func _get_data(): return _data
+	## Creating constants for the built-in types.
+	## Notice all these constants are of type 'type'.
+	constants[&"type"] 		= _tn_type
+	constants[&"bool"] 		= _new_type()
+	constants[&"int"] 		= _new_type()
+	constants[&"float"] 	= _new_type()
+	constants[&"string"] 	= _new_type()
+	constants[&"function"] 	= _new_type()
+	constants[&"NullType"] 	= _new_type()
+	
+	## Declare constants of type 'boolean' with some values.
+	constants[&"true"] 	= constants[&"bool"].new_instance(true)
+	constants[&"yes"] 	= constants[&"bool"].new_instance(true)
+	constants[&"on"] 	= constants[&"bool"].new_instance(true)
+	constants[&"false"] = constants[&"bool"].new_instance(false)
+	constants[&"no"] 	= constants[&"bool"].new_instance(false)
+	constants[&"off"] 	= constants[&"bool"].new_instance(false)
+	
+	# Declare TAU, a float constant, for fun
+	constants[&"TAU"]	= constants[&"float"].new_instance(TAU)
+	
+	# Declare print, a function constant.
+	constants[&"print"]	= TN_function.new(context, [&"what"], [])
+	
+	# Test calling a defined function!!!
+	constants[&"print"].TN_call(null, ["hello world"])

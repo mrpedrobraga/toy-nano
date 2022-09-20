@@ -10,6 +10,11 @@ config_version=5
 
 _global_script_classes=[{
 "base": "RefCounted",
+"class": &"TNContext",
+"language": &"GDScript",
+"path": "res://src/TNContext.gd"
+}, {
+"base": "RefCounted",
 "class": &"TNRuntime",
 "language": &"GDScript",
 "path": "res://src/TNRuntime.gd"
@@ -18,10 +23,29 @@ _global_script_classes=[{
 "class": &"TNTokenizer",
 "language": &"GDScript",
 "path": "res://src/TNTokenizer.gd"
+}, {
+"base": "RefCounted",
+"class": &"TNValue",
+"language": &"GDScript",
+"path": "res://src/TNValue.gd"
+}, {
+"base": "TNValue",
+"class": &"TN_function",
+"language": &"GDScript",
+"path": "res://src/builtin/TN_function.gd"
+}, {
+"base": "TNValue",
+"class": &"TN_type",
+"language": &"GDScript",
+"path": "res://src/builtin/TN_type.gd"
 }]
 _global_script_class_icons={
+"TNContext": "",
 "TNRuntime": "",
-"TNTokenizer": ""
+"TNTokenizer": "",
+"TNValue": "",
+"TN_function": "",
+"TN_type": ""
 }
 
 [application]
